@@ -1,0 +1,6 @@
+C:\Users\Nathan\source\repos\TgoExt\TgoExt\bin\Debug\TgoExt.dll
+C:\Users\Nathan\source\repos\TgoExt\TgoExt\bin\Debug\TgoExt.pdb
+C:\Users\Nathan\source\repos\TgoExt\TgoExt\obj\Debug\TgoExt.csprojAssemblyReference.cache
+C:\Users\Nathan\source\repos\TgoExt\TgoExt\obj\Debug\TgoExt.csproj.CoreCompileInputs.cache
+C:\Users\Nathan\source\repos\TgoExt\TgoExt\obj\Debug\TgoExt.dll
+C:\Users\Nathan\source\repos\TgoExt\TgoExt\obj\Debug\TgoExt.pdb
