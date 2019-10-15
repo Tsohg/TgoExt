@@ -7,13 +7,26 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Windows.Input;
 using System.Diagnostics;
+using System.Net.Sockets;
+using System.Net;
+using System.IO;
 
 namespace TgoExt
 {
+    /// <summary>
+    /// TODO: Disable all controls on player logout.
+    /// </summary>
     class Tgo
     {
         private static Form overlay;
         private static Thread listener;
+        private static TcpClient server;
+        private static string tplrName;
+        private static Thread conThread;
+
+        //IPE Info from NodeCraft
+        private static int PORT = 10337;
+        private static IPAddress IP = IPAddress.Parse("173.236.15.24");
 
         /// <summary>
         /// External Initialization. Runs when Terraria begins. Use this to initialize any variables.
@@ -22,13 +35,6 @@ namespace TgoExt
         public static void ExtInit()
         {
             overlay = GenerateOverlay();
-        }
-
-        /// <summary>
-        /// Listens for the Tilde key for now.
-        /// </summary>
-        private static void InputListener()
-        {
             //brute force clean up crew
             overlay.FormClosed += (object o, FormClosedEventArgs e) =>
             {
@@ -41,6 +47,16 @@ namespace TgoExt
                 foreach (Process x in p)
                     x.Close();
             };
+            conThread = new Thread(new ThreadStart(Connect));
+            conThread.Start();
+            //Connect();
+        }
+
+        /// <summary>
+        /// Listens for the Tilde key for now.
+        /// </summary>
+        private static void InputListener()
+        {
             try
             {
                 while (true)
@@ -83,7 +99,7 @@ namespace TgoExt
             //Cursor.Hide();
 
             //Buttons
-            Button bT1 = MakeButton(new Point(0, 0), "T1");
+            Button bT1 = MakeButton(new Point(0, 0), "T1", SendMessage);
 
             //Control Additions
             f.Controls.Add(bT1);
@@ -100,6 +116,7 @@ namespace TgoExt
         private static void Dispose(object sender, EventArgs e)
         {
             listener.Abort();
+            conThread.Abort();
         }
 
         /// <summary>
@@ -108,7 +125,7 @@ namespace TgoExt
         /// <param name="loc"></param>
         /// <param name="text"></param>
         /// <returns></returns>
-        private static Button MakeButton(Point loc, string text)
+        private static Button MakeButton(Point loc, string text, EventHandler OnClick)
         {
             Button b = new Button();
             b.BackColor = Color.White;
@@ -118,9 +135,17 @@ namespace TgoExt
             b.Width = 50;
             b.Location = loc;
             b.Text = text;
-            b.Enabled = true;
+            b.Enabled = false; //disable all controls for now.
             b.Visible = true;
+            b.Click += OnClick;
             return b;
+        }
+
+        private static void SendMessage(object sender, EventArgs e)
+        {
+            StreamWriter sw = new StreamWriter(server.GetStream());
+            sw.WriteLine(tplrName + ",HelloWorld");
+            sw.Flush();
         }
 
         private static void ToggleFormOverlay(Form f)
@@ -128,6 +153,31 @@ namespace TgoExt
             foreach (Control c in f.Controls)
                 c.Visible = !c.Visible;
             f.Visible = !f.Visible;
+        }
+
+        private static void Connect()
+        {
+            try
+            {
+                //server = new TcpClient(IPE); //fails for some reason. connect outside the constructor from now on.
+                server = new TcpClient();
+                server.Connect(IP, PORT);
+                StreamReader sr = new StreamReader(server.GetStream());
+                tplrName = sr.ReadLine(); //should wait for the tsplr name to be sent...
+                if (tplrName != null)
+                {
+                    //activate controls
+                    foreach(Control c in overlay.Controls)
+                    {
+                        c.Enabled = true;
+                    }
+                }
+                else throw new Exception("Null TSPlayer Name.");
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Connection error: " + e.Message);
+            }
         }
     }
 }
