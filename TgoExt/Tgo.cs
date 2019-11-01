@@ -144,7 +144,7 @@ namespace TgoExt
         private static void SendMessage(object sender, EventArgs e)
         {
             StreamWriter sw = new StreamWriter(server.GetStream());
-            sw.WriteLine(tplrName + ",HelloWorld");
+            sw.WriteLine("HelloWorld");
             sw.Flush();
         }
 
