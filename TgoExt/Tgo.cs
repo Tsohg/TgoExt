@@ -23,10 +23,14 @@ namespace TgoExt
         private static TcpClient server;
         private static string tplrName;
         private static Thread conThread;
+        private static Thread plThread;
 
         //IPE Info from NodeCraft
         private static int PORT = 10337;
         private static IPAddress IP = IPAddress.Parse("173.236.15.24");
+
+        private static List<Control> extControls;
+        private static ListBox targets;
 
         /// <summary>
         /// External Initialization. Runs when Terraria begins. Use this to initialize any variables.
@@ -34,22 +38,33 @@ namespace TgoExt
         /// </summary>
         public static void ExtInit()
         {
-            overlay = GenerateOverlay();
-            //brute force clean up crew
-            overlay.FormClosed += (object o, FormClosedEventArgs e) =>
+            try
             {
-                Process t = Process.GetCurrentProcess();
-                t.Close();
-                Process[] p = Process.GetProcessesByName("TGO.exe");
-                foreach (Process x in p)
-                    x.Close();
-                p = Process.GetProcessesByName("Terraria.exe");
-                foreach (Process x in p)
-                    x.Close();
-            };
-            conThread = new Thread(new ThreadStart(Connect));
-            conThread.Start();
-            //Connect();
+                extControls = new List<Control>();
+                overlay = GenerateOverlay();
+
+                conThread = new Thread(new ThreadStart(Connect));
+                conThread.Start();
+
+                //brute force clean up crew
+                overlay.FormClosed += (object o, FormClosedEventArgs e) =>
+                {
+                    Process t = Process.GetCurrentProcess();
+                    t.Close();
+                    Process[] p = Process.GetProcessesByName("TGO.exe");
+                    foreach (Process x in p)
+                        x.Close();
+                    p = Process.GetProcessesByName("Terraria.exe");
+                    foreach (Process x in p)
+                        x.Close();
+                    conThread.Abort();
+                    plThread.Abort();
+                };
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("TgoExt.ExtInit Error: " + e.Message);
+            }
         }
 
         /// <summary>
@@ -91,18 +106,44 @@ namespace TgoExt
             f.Location = new Point(0, 0); //replace with terraria coordinates
             f.Opacity = 0.7; //replace with constant
             f.Disposed += Dispose; //clean up system hooks
-
-            //Hide Form?
-            //f.TransparencyKey = Color.Bisque;
             f.BackColor = Color.SlateGray; //Color.Bisque;
             f.FormBorderStyle = FormBorderStyle.None;
-            //Cursor.Hide();
+
+            TabControl tc = new TabControl();
+            tc.Width = f.Width;
+            tc.Height = f.Height;
+
+            #region TgoMod
+            TabPage tgoModPage = new TabPage();
+            tgoModPage.Text = "Tgo Mod";
+            tgoModPage.Height = f.Height;
+            tgoModPage.Width = f.Width;
+
+            //Player targets
+            targets = new ListBox();
+            targets.Location = new Point(0, 0);
+            targets.Width = 100;
+            targets.Height = 100;
+            targets.Enabled = false;
+            extControls.Add(targets);
+            tgoModPage.Controls.Add(targets);
 
             //Buttons
-            Button bT1 = MakeButton(new Point(0, 0), "T1", SendMessage);
+            Button bT1 = MakeButton(new Point(110, 0), "T1", SendMessage);
+            tgoModPage.Controls.Add(bT1);
+
+            tc.TabPages.Add(tgoModPage);
+            #endregion
+            #region TgoWEdit
+            #endregion
+            f.Controls.Add(tc);
+
+            //Buttons
+            //Button bT1 = MakeButton(new Point(0, 0), "T1", SendMessage);
+            
 
             //Control Additions
-            f.Controls.Add(bT1);
+            //f.Controls.Add(bT1);
 
             //ToggleFormOverlay(f); //initially hide until hotkey combo is used.
 
@@ -132,12 +173,13 @@ namespace TgoExt
             b.ForeColor = Color.Black;
             b.Font = new Font(b.Font.FontFamily, 16, FontStyle.Bold);
             b.Height = 50;
-            b.Width = 50;
+            b.Width = 100;
             b.Location = loc;
             b.Text = text;
             b.Enabled = false; //disable all controls for now.
             b.Visible = true;
             b.Click += OnClick;
+            extControls.Add(b);
             return b;
         }
 
@@ -167,16 +209,56 @@ namespace TgoExt
                 if (tplrName != null)
                 {
                     //activate controls
-                    foreach(Control c in overlay.Controls)
-                    {
+                    foreach(Control c in extControls)
                         c.Enabled = true;
-                    }
+                    //begin listening for player list.
+                    plThread = new Thread(new ThreadStart(ListenPlayerListAsync));
+                    plThread.Start();
                 }
                 else throw new Exception("Null TSPlayer Name.");
             }
             catch (Exception e)
             {
                 MessageBox.Show("Connection error: " + e.Message);
+            }
+        }
+
+        /// <summary>
+        /// TODO: Have TgoRequests send info in below format whenever a player logs in or logs out.
+        /// Update a player control list.
+        /// </summary>
+        private static async void ListenPlayerListAsync()
+        {
+            try
+            {
+                StreamReader sr = new StreamReader(server.GetStream());
+                while (true)
+                {
+                    //PL,name1,name2...
+                    string list = await sr.ReadLineAsync();
+                    string[] tkns = list.Split(',');
+                    if (tkns[0] == "PL")
+                    {
+                        //for (int i = 0; i < targets.Items.Count; i++)
+                        //    targets.Items.RemoveAt(i);
+                        //for (int i = 1; i < tkns.Length; i++)
+                        //{
+                        //    targets.Items.Add(tkns[i]);
+                        //}
+                        targets.DataSource = null;
+                        List<string> newSource = new List<string>();
+                        for (int i = 1; i < tkns.Length; i++)
+                        {
+                            newSource.Add(tkns[i]);
+                        }
+                        targets.DataSource = newSource;
+                        targets.Refresh();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("ListenPlayerAsyncError: " + e.Message);
             }
         }
     }
