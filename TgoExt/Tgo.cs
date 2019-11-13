@@ -31,6 +31,7 @@ namespace TgoExt
 
         private static List<Control> extControls;
         private static ListBox targets;
+        private static TextBox tbReason;
 
         /// <summary>
         /// External Initialization. Runs when Terraria begins. Use this to initialize any variables.
@@ -101,8 +102,9 @@ namespace TgoExt
             f.Show();
             f.BringToFront();
             f.TopMost = true;
-            f.Size = new Size(SystemInformation.VirtualScreen.Width - (int)(SystemInformation.VirtualScreen.Width * 0.9),
-                SystemInformation.VirtualScreen.Height);
+            //f.Size = new Size(SystemInformation.VirtualScreen.Width - (int)(SystemInformation.VirtualScreen.Width * 0.9),
+            //    SystemInformation.VirtualScreen.Height);
+            f.Size = new Size(300, 500); //300, 500 seems to be a good size for the window.
             f.Location = new Point(0, 0); //replace with terraria coordinates
             f.Opacity = 0.7; //replace with constant
             f.Disposed += Dispose; //clean up system hooks
@@ -128,9 +130,22 @@ namespace TgoExt
             extControls.Add(targets);
             tgoModPage.Controls.Add(targets);
 
+            //kick/mute/ban reason textbox
+            tbReason = new TextBox();
+            tbReason.Location = new Point(0, 110);
+            tbReason.Size = new Size(100, 30);
+            tbReason.Font = new Font(tbReason.Font.FontFamily, 8, FontStyle.Bold);
+            tbReason.Text = "Reason";
+            tbReason.Click += (object sender, EventArgs e) => { tbReason.Text = ""; };
+            tgoModPage.Controls.Add(tbReason);
+
             //Buttons
-            Button bT1 = MakeButton(new Point(110, 0), "T1", SendMessage);
-            tgoModPage.Controls.Add(bT1);
+            //Button bT1 = MakeButton(new Point(110, 0), "T1", SendMessage);
+            //tgoModPage.Controls.Add(bT1);
+            Button mute = MakeButton(new Point(110, 0), "Mute", SendMessage);
+            Button kick = MakeButton(new Point(110, 60), "Kick", SendMessage);
+            Button ban = MakeButton(new Point(110, 120), "Ban", SendMessage);
+            tgoModPage.Controls.AddRange(new Control[] { mute, kick, ban });
 
             tc.TabPages.Add(tgoModPage);
             #endregion
@@ -186,7 +201,8 @@ namespace TgoExt
         private static void SendMessage(object sender, EventArgs e)
         {
             StreamWriter sw = new StreamWriter(server.GetStream());
-            sw.WriteLine("HelloWorld");
+            Button bt = (Button)sender;
+            sw.WriteLine(bt.Text + "," + targets.SelectedItem.ToString() + "," + tbReason.Text);
             sw.Flush();
         }
 
@@ -209,13 +225,13 @@ namespace TgoExt
                 if (tplrName != null)
                 {
                     //activate controls
-                    foreach(Control c in extControls)
+                    foreach (Control c in extControls)
                         c.Enabled = true;
                     //begin listening for player list.
                     plThread = new Thread(new ThreadStart(ListenPlayerListAsync));
                     plThread.Start();
                 }
-                else throw new Exception("Null TSPlayer Name.");
+                else MessageBox.Show("Null TPlayer Name Exception");
             }
             catch (Exception e)
             {
