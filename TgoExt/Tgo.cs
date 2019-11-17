@@ -150,6 +150,20 @@ namespace TgoExt
             tc.TabPages.Add(tgoModPage);
             #endregion
             #region TgoWEdit
+            TabPage tgoEditPage = new TabPage();
+            tgoEditPage.Text = "Tgo Edit";
+            tgoEditPage.Height = f.Height;
+            tgoEditPage.Width = f.Width;
+
+            //Buttons
+            Button point1 = MakeButton(new Point(0, 0), "Point1", SendMessage);
+            Button point2 = MakeButton(new Point(0, 60), "Point2", SendMessage);
+            Button cut = MakeButton(new Point(0, 120), "Cut", SendMessage);
+            Button paste = MakeButton(new Point(110, 0), "Paste", SendMessage);
+            Button undo = MakeButton(new Point(110, 60), "Undo", SendMessage);
+            tgoEditPage.Controls.AddRange(new Control[] { point1, point2, cut, paste, undo });
+
+            tc.TabPages.Add(tgoEditPage);
             #endregion
             f.Controls.Add(tc);
 
